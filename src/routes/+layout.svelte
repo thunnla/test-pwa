@@ -88,6 +88,7 @@
 	<a href="/map-test" class="nav-link">Map Test</a>
 	<a href="/image-test" class="nav-link">Image Test</a>
 	<a href="/audio-test" class="nav-link">Audio Test</a>
+	<a href="/report">Report Cache</a>
 </nav>
 
 {#if showUpdateBanner}
