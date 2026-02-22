@@ -116,12 +116,13 @@ export default defineConfig({
 					},
 
 					// ── Navigation requests (HTML pages) ──
+					// StaleWhileRevalidate: serve cache ngay khi refresh offline
+					// NetworkFirst sẽ chờ timeout → user thấy "không có mạng" trước khi fallback
 					{
 						urlPattern: ({ request }) => request.mode === 'navigate',
-						handler: 'NetworkFirst',
+						handler: 'StaleWhileRevalidate',
 						options: {
 							cacheName: 'pages-cache',
-							networkTimeoutSeconds: 5,
 							expiration: {
 								maxEntries: 50,
 								maxAgeSeconds: 60 * 60 * 24 * 7
