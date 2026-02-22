@@ -41,9 +41,9 @@
 					// Warm-up: pre-cache các trang chính sau khi SW sẵn sàng
 					// Đảm bảo offline refresh hoạt động dù user chưa từng vào trang đó
 					navigator.serviceWorker.ready.then(() => {
-						const keyRoutes = ['/pwa-test', '/image-test', '/audio-test', '/map-test', '/report'];
+						const keyRoutes = ['/', '/pwa-test', '/image-test', '/audio-test', '/map-test', '/report'];
 						keyRoutes.forEach((url) => {
-							fetch(url, { credentials: 'same-origin' }).catch(() => {});
+							fetch(url, { credentials: 'same-origin', redirect: 'follow' }).catch(() => {});
 						});
 						console.log('📦 Key routes warm-up triggered');
 					});

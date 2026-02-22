@@ -10,7 +10,6 @@ export default defineConfig({
 		VitePWA({
 			registerType: 'autoUpdate',
 			injectRegister: null,
-			inlineWorkboxRuntime: true,
 			devOptions: {
 				enabled: false
 			},
@@ -61,6 +60,21 @@ export default defineConfig({
 							expiration: {
 								maxEntries: 2000,
 								maxAgeSeconds: THIRTY_DAYS
+							},
+							cacheableResponse: {
+								statuses: [0, 200]
+							}
+						}
+					},
+
+					{
+						urlPattern: ({ request }) => request.mode === 'navigate',
+						handler: 'StaleWhileRevalidate',
+						options: {
+							cacheName: 'pages-cache',
+							expiration: {
+								maxEntries: 50,
+								maxAgeSeconds: 60 * 60 * 24 * 7
 							},
 							cacheableResponse: {
 								statuses: [0, 200]
