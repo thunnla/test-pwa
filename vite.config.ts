@@ -10,8 +10,9 @@ export default defineConfig({
 		VitePWA({
 			registerType: 'autoUpdate',
 			injectRegister: null,
+			inlineWorkboxRuntime: true,
 			devOptions: {
-				enabled: true
+				enabled: false
 			},
 			includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'robots.txt'],
 			manifest: {
@@ -43,9 +44,9 @@ export default defineConfig({
 			},
 			workbox: {
 				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
-				// Không dùng navigateFallback với SSR (Netlify adapter) — gây conflict
-				// NetworkFirst runtime cache dưới đây sẽ tự cache HTML khi online
-				// và trả cached version khi offline
+				// Không dùng navigateFallback với SSR (Netlify adapter) — gây crash
+				// "non-precached-url: index.html" khi offline
+				navigateFallback: null,
 				cleanupOutdatedCaches: true,
 				skipWaiting: true,
 				clientsClaim: true,
