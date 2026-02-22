@@ -118,42 +118,30 @@
 				throw new Error('Trình duyệt không hỗ trợ Service Worker');
 			}
 
-			// Thử lấy registration hiện tại trước
-			let reg = await navigator.serviceWorker.getRegistration();
-
+			// Ưu tiên: check getRegistration() — reg.active tồn tại là SW đã active
+			// (controller có thể null ở lần load đầu dù SW đã active, nên không dùng làm tiêu chí)
+			const reg = await navigator.serviceWorker.getRegistration();
 			if (reg?.active) {
 				swStatus = 'active';
-				return `Scope: ${reg.scope} (active)`;
+				const controlled = navigator.serviceWorker.controller ? ' | đang kiểm soát trang' : ' | chưa claim trang (bình thường ở lần load đầu)';
+				return `Scope: ${reg.scope}${controlled}`;
 			}
 
-			// SW có thể đang installing/waiting — chờ ready với timeout 10s
-			if (reg?.installing || reg?.waiting) {
-				const readyReg = await Promise.race([
-					navigator.serviceWorker.ready,
-					new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000))
-				]);
-				if (readyReg?.active) {
-					swStatus = 'active';
-					return `Scope: ${readyReg.scope} (activated sau khi chờ)`;
-				}
-			}
+			// SW đang installing hoặc waiting → chờ ready (tối đa 15s)
+			const result = await Promise.race([
+				navigator.serviceWorker.ready.then((r) => ({ ok: true as const, reg: r })),
+				new Promise<{ ok: false }>((resolve) => setTimeout(() => resolve({ ok: false }), 15000))
+			]);
 
-			// Thử chờ ready lần cuối (trường hợp chưa có registration)
-			try {
-				const readyReg = await Promise.race([
-					navigator.serviceWorker.ready,
-					new Promise<null>((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
-				]);
-				if (readyReg?.active) {
-					swStatus = 'active';
-					return `Scope: ${readyReg.scope} (ready)`;
-				}
-			} catch {
-				// timeout
+			if (result.ok && result.reg?.active) {
+				swStatus = 'active';
+				return `Scope: ${result.reg.scope} (active sau khi chờ)`;
 			}
 
 			swStatus = 'inactive';
-			throw new Error('Service Worker chưa active sau 10s chờ. Thử reload trang và chạy lại.');
+			throw new Error(
+				'SW chưa active. Thử reload trang 1 lần rồi chạy lại kiểm thử.'
+			);
 		});
 
 		// 2. Storage API
@@ -197,24 +185,33 @@
 
 		// 6. Installable
 		await runTest(5, async () => {
-			// Kiểm tra app đã được cài đặt chưa (standalone mode)
+			// 1. Đang chạy trong app đã cài (standalone mode)
 			const isStandalone =
 				window.matchMedia('(display-mode: standalone)').matches ||
 				(navigator as any).standalone === true ||
 				document.referrer.includes('android-app://');
 
 			if (isStandalone) {
-				return '✅ App đã được cài đặt (đang chạy standalone mode)';
+				return '✅ App đã cài đặt và đang chạy ở standalone mode';
 			}
 
-			// Chưa cài → kiểm tra điều kiện installable
-			const manifest = document.querySelector('link[rel="manifest"]');
-			if (!manifest) throw new Error('Không tìm thấy manifest link');
-
+			// 2. Kiểm tra điều kiện cài đặt thủ công: HTTPS + manifest + SW
+			const isHttps =
+				location.protocol === 'https:' || location.hostname === 'localhost';
+			const hasManifest = !!document.querySelector('link[rel="manifest"]');
 			const reg = await navigator.serviceWorker?.getRegistration();
-			if (!reg?.active) throw new Error('Cần Service Worker hoạt động để cài đặt');
+			const hasSW = !!(reg?.active || reg?.installing || reg?.waiting || navigator.serviceWorker.controller);
 
-			return 'Manifest + SW sẵn sàng (chưa cài đặt)';
+			const missing: string[] = [];
+			if (!isHttps) missing.push('cần HTTPS');
+			if (!hasManifest) missing.push('thiếu manifest');
+			if (!hasSW) missing.push('SW chưa đăng ký');
+
+			if (missing.length === 0) {
+				return 'HTTPS + Manifest + SW sẵn sàng — có thể cài đặt (mở trên trình duyệt để thấy nút Install)';
+			}
+
+			throw new Error(`Thiếu: ${missing.join(', ')}`);
 		});
 
 		loading = false;
