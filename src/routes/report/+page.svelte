@@ -16,7 +16,8 @@
 	let cacheNames = $state<string[]>([]);
 	let cacheDetails = $state<{ name: string; count: number; estimatedSize: string }[]>([]);
 	let offlineOk = $state<boolean | null>(null);
-	let swStatus = $state<'checking' | 'active' | 'inactive' | 'unsupported'>('checking');
+	let swStatus = $state<'checking' | 'active' | 'installing' | 'inactive' | 'unsupported'>('checking');
+	let swDebugInfo = $state('');  // thông tin debug chi tiết
 	let loading = $state(false);
 	let reportTime = $state('');
 	let userAgent = $state('');
@@ -56,7 +57,32 @@
 		reportTime = new Date().toLocaleString('vi-VN');
 		userAgent = navigator.userAgent;
 		detectEnvironment();
+		// Auto-detect SW status when page loads (không cần chạy test)
+		detectSWStatus();
 	});
+
+	async function detectSWStatus() {
+		if (!('serviceWorker' in navigator)) {
+			swStatus = 'unsupported';
+			return;
+		}
+		try {
+			// getRegistrations() trả về TẤT CẢ SW đã đăng ký
+			const regs = await navigator.serviceWorker.getRegistrations();
+			const anyActive = regs.some((r) => r.active);
+			const anyRegistered = regs.length > 0;
+			if (anyActive || navigator.serviceWorker.controller) {
+				swStatus = 'active';
+			} else if (anyRegistered) {
+				// Đăng ký rồi nhưng chưa activate (đang installing/waiting)
+				swStatus = 'installing';
+			} else {
+				swStatus = 'inactive';
+			}
+		} catch {
+			swStatus = 'inactive';
+		}
+	}
 
 	function detectEnvironment() {
 		const ua = navigator.userAgent;
@@ -111,37 +137,37 @@
 		// Reset
 		testResults = testResults.map((t) => ({ ...t, status: 'pending' as const, note: '' }));
 
-		// 1. Service Worker
+		// 1. Service Worker — kiểm tra nhanh, không block lâu
 		await runTest(0, async () => {
 			if (!('serviceWorker' in navigator)) {
 				swStatus = 'unsupported';
 				throw new Error('Trình duyệt không hỗ trợ Service Worker');
 			}
 
-			// Ưu tiên: check getRegistration() — reg.active tồn tại là SW đã active
-			// (controller có thể null ở lần load đầu dù SW đã active, nên không dùng làm tiêu chí)
-			const reg = await navigator.serviceWorker.getRegistration();
-			if (reg?.active) {
+			// Lấy TẤT CẢ registrations (không chỉ scope hiện tại)
+			const regs = await navigator.serviceWorker.getRegistrations();
+			const activeReg = regs.find((r) => r.active);
+			const installingReg = regs.find((r) => r.installing || r.waiting);
+			const hasController = !!navigator.serviceWorker.controller;
+
+			// Tổng hợp debug info
+			swDebugInfo = `Registrations: ${regs.length} | controller: ${hasController} | active: ${!!activeReg} | installing/waiting: ${!!installingReg}`;
+
+			if (activeReg || hasController) {
 				swStatus = 'active';
-				const controlled = navigator.serviceWorker.controller ? ' | đang kiểm soát trang' : ' | chưa claim trang (bình thường ở lần load đầu)';
-				return `Scope: ${reg.scope}${controlled}`;
+				const scope = activeReg?.scope ?? 'n/a';
+				const claim = hasController ? 'đang kiểm soát trang' : 'active nhưng chưa claim (bình thường ở lần đầu)';
+				return `Scope: ${scope} | ${claim}`;
 			}
 
-			// SW đang installing hoặc waiting → chờ ready (tối đa 15s)
-			const result = await Promise.race([
-				navigator.serviceWorker.ready.then((r) => ({ ok: true as const, reg: r })),
-				new Promise<{ ok: false }>((resolve) => setTimeout(() => resolve({ ok: false }), 15000))
-			]);
-
-			if (result.ok && result.reg?.active) {
-				swStatus = 'active';
-				return `Scope: ${result.reg.scope} (active sau khi chờ)`;
+			if (installingReg) {
+				swStatus = 'installing';
+				// SW đang cài — không FAIL, đây là trạng thái bình thường lần đầu
+				return `SW đang khởi động (${installingReg.installing ? 'installing' : 'waiting'}) — reload trang để hoàn tất`;
 			}
 
 			swStatus = 'inactive';
-			throw new Error(
-				'SW chưa active. Thử reload trang 1 lần rồi chạy lại kiểm thử.'
-			);
+			throw new Error(`Không tìm thấy SW nào (${regs.length} registrations). Thử reload trang.`);
 		});
 
 		// 2. Storage API
@@ -434,14 +460,19 @@
 		<div class="sw-status">
 			{#if swStatus === 'active'}
 				<span class="tag pass">✅ Đang hoạt động</span>
+			{:else if swStatus === 'installing'}
+				<span class="tag running">⏳ Đang khởi động (installing/waiting)</span>
 			{:else if swStatus === 'inactive'}
-				<span class="tag fail">⚠️ Chưa hoạt động</span>
+				<span class="tag fail">⚠️ Chưa đăng ký — thử reload trang</span>
 			{:else if swStatus === 'unsupported'}
-				<span class="tag fail">❌ Không hỗ trợ</span>
+				<span class="tag fail">❌ Trình duyệt không hỗ trợ</span>
 			{:else}
-				<span class="tag pending">⏸ Chưa kiểm tra</span>
+				<span class="tag running">⏳ Đang kiểm tra…</span>
 			{/if}
 		</div>
+		{#if swDebugInfo}
+			<p class="muted sw-debug">{swDebugInfo}</p>
+		{/if}
 		<p class="muted">Mode: <strong>generateSW</strong> (vite-plugin-pwa / Workbox)</p>
 	</section>
 
@@ -681,6 +712,13 @@
 
 	/* SW status */
 	.sw-status { margin-bottom: 0.5rem; }
+	.sw-debug {
+		font-size: 0.72rem;
+		color: #94a3b8;
+		word-break: break-all;
+		margin-top: 0.25rem;
+		font-family: 'SF Mono', Consolas, monospace;
+	}
 
 	/* Conclusion */
 	.conclusion {
