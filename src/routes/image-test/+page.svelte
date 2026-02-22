@@ -19,11 +19,25 @@
 		// Initialize statuses
 		imageStatuses = images.map((path) => ({ path, loaded: false }));
 
-		// Probe each file to check availability (they are binary so we just fetch HEAD)
+		// Kiểm tra từng file: ưu tiên caches.match() (hoạt động offline)
+		// fallback sang GET nếu online và chưa có trong cache
 		images.forEach(async (path, idx) => {
 			try {
-				const res = await fetch(path, { method: 'HEAD' });
-				imageStatuses[idx] = { path, loaded: res.ok };
+				// 1. Kiểm tra trong CacheStorage trước (không cần mạng)
+				if ('caches' in window) {
+					const cached = await caches.match(path);
+					if (cached) {
+						imageStatuses[idx] = { path, loaded: true };
+						return;
+					}
+				}
+				// 2. Nếu online, thử fetch GET (SW sẽ cache lại)
+				if (navigator.onLine) {
+					const res = await fetch(path);
+					imageStatuses[idx] = { path, loaded: res.ok };
+				} else {
+					imageStatuses[idx] = { path, loaded: false };
+				}
 			} catch {
 				imageStatuses[idx] = { path, loaded: false };
 			}

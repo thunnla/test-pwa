@@ -25,8 +25,21 @@
 		// Check availability
 		audioFiles.forEach(async (file, idx) => {
 			try {
-				const res = await fetch(file.path, { method: 'HEAD' });
-				audioStatuses[idx] = { ...file, available: res.ok };
+				// 1. Kiểm tra CacheStorage trước (hoạt động offline)
+				if ('caches' in window) {
+					const cached = await caches.match(file.path);
+					if (cached) {
+						audioStatuses[idx] = { ...file, available: true };
+						return;
+					}
+				}
+				// 2. Nếu online, thử GET (SW sẽ cache lại)
+				if (navigator.onLine) {
+					const res = await fetch(file.path);
+					audioStatuses[idx] = { ...file, available: res.ok };
+				} else {
+					audioStatuses[idx] = { ...file, available: false };
+				}
 			} catch {
 				audioStatuses[idx] = { ...file, available: false };
 			}

@@ -43,8 +43,8 @@ export default defineConfig({
 			},
 			workbox: {
 				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
-				navigateFallback: '/',
-				navigateFallbackAllowlist: [/^(?!\/__)/],
+				// navigateFallback đã xóa: '/' là SSR, không có file tĩnh → Workbox crash
+				// Đã có NetworkFirst runtime cache cho navigate rồi
 				cleanupOutdatedCaches: true,
 				skipWaiting: true,
 				clientsClaim: true,
