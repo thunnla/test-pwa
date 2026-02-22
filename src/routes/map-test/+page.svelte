@@ -6,14 +6,46 @@
 	let isOnline = $state(true);
 	let mapReady = $state(false);
 	let tileError = $state('');
+	let tileCacheStatus = $state<'checking' | 'cached' | 'partial' | 'none'>('checking');
+	let tileCachedCount = $state(0);
+	let tileTotalChecked = $state(0);
 
 	const LAM_THUONG_CENTER: [number, number] = [22.283, 104.775];
 	const DEFAULT_ZOOM = 15;
+
+	// Kiểm tra một số tile mẫu xem đã cache chưa
+	async function checkTileCache() {
+		if (!('caches' in window)) {
+			tileCacheStatus = 'none';
+			return;
+		}
+		// Các tile mẫu quanh khu vực Lâm Thượng zoom 15
+		const sampleTiles = [
+			'/map-tiles/z15/25905/13929.png',
+			'/map-tiles/z15/25906/13929.png',
+			'/map-tiles/z15/25905/13930.png',
+			'/map-tiles/z14/12952/6964.png',
+			'/map-tiles/z16/51810/27858.png'
+		];
+		let found = 0;
+		for (const url of sampleTiles) {
+			const match = await caches.match(url);
+			if (match) found++;
+		}
+		tileTotalChecked = sampleTiles.length;
+		tileCachedCount = found;
+		if (found === sampleTiles.length) tileCacheStatus = 'cached';
+		else if (found > 0) tileCacheStatus = 'partial';
+		else tileCacheStatus = 'none';
+	}
 
 	onMount(async () => {
 		isOnline = navigator.onLine;
 		window.addEventListener('online', () => (isOnline = true));
 		window.addEventListener('offline', () => (isOnline = false));
+
+		// Kiểm tra cache tile song song với load map
+		checkTileCache();
 
 		// Dynamic import to avoid SSR issues
 		const L = await import('leaflet');
@@ -41,9 +73,22 @@
 		});
 
 		// Try local first, add OSM as base
-		localTiles.on('tileerror', () => {
+		localTiles.on('tileerror', (e: any) => {
+			if (!navigator.onLine) {
+				// Khi offline, thử đọc từ cache thũ công
+				const url = e.tile?.src ?? '';
+				if (url && 'caches' in window) {
+					caches.match(url).then((cached) => {
+						if (cached) cached.blob().then((blob) => {
+							e.tile.src = URL.createObjectURL(blob);
+						});
+					});
+				}
+			}
 			if (!tileError) {
-				tileError = 'Some local tiles missing — using online fallback if available';
+				tileError = isOnline
+					? 'Một số tile local chưa có — đang dùng OSM online'
+					: 'Tile chưa được cache — cần mở map lúc online trước';
 			}
 		});
 
@@ -90,6 +135,19 @@
 	{#if tileError}
 		<div class="tile-warning">{tileError}</div>
 	{/if}
+
+	<!-- Trạng thái cache tile -->
+	<div class="cache-bar">
+		{#if tileCacheStatus === 'checking'}
+			<span class="cache-tag checking">⏳ Đang kiểm tra cache tile…</span>
+		{:else if tileCacheStatus === 'cached'}
+			<span class="cache-tag ok">✅ Tiles đã cache ({tileCachedCount}/{tileTotalChecked} mẫu)</span>
+		{:else if tileCacheStatus === 'partial'}
+			<span class="cache-tag partial">⚠️ Cache một phần ({tileCachedCount}/{tileTotalChecked} mẫu) — mở map online để cache đủ</span>
+		{:else}
+			<span class="cache-tag none">❌ Chưa có tile nào trong cache. Mở map khi online để tải về.</span>
+		{/if}
+	</div>
 
 	{#if !mapReady}
 		<div class="loading">Loading map…</div>
@@ -148,6 +206,22 @@
 		font-size: 0.82rem;
 		flex-shrink: 0;
 	}
+
+	.cache-bar {
+		padding: 0.3rem 1rem;
+		background: #f8fafc;
+		border-bottom: 1px solid #e2e8f0;
+		flex-shrink: 0;
+	}
+
+	.cache-tag {
+		font-size: 0.8rem;
+		font-weight: 500;
+	}
+	.cache-tag.checking { color: #92400e; }
+	.cache-tag.ok { color: #166534; }
+	.cache-tag.partial { color: #b45309; }
+	.cache-tag.none { color: #991b1b; }
 
 	.loading {
 		position: absolute;

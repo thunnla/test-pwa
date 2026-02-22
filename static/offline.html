@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đang offline — Lam Thuong PWA</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+      text-align: center;
+    }
+    .icon { font-size: 4rem; margin-bottom: 1rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #f8fafc; }
+    p { color: #94a3b8; font-size: 0.95rem; margin-bottom: 0.4rem; }
+    .hint { margin-top: 1.5rem; padding: 1rem 1.5rem; background: #1e293b; border-radius: 10px; font-size: 0.85rem; color: #64748b; }
+    .btn {
+      margin-top: 1.5rem;
+      padding: 0.65rem 1.5rem;
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    .btn:hover { background: #2563eb; }
+  </style>
+</head>
+<body>
+  <div class="icon">📡</div>
+  <h1>Không có kết nối mạng</h1>
+  <p>Trang này chưa được cache hoặc SW chưa khởi động.</p>
+  <p>Các trang đã truy cập trước đó vẫn hoạt động offline.</p>
+  <div class="hint">
+    💡 Nếu đây là lần đầu, hãy mở app khi online ít nhất 1 lần để cache hoạt động.
+  </div>
+  <button class="btn" onclick="window.location.reload()">Thử lại</button>
+  <script>
+    // Khi mạng về tự reload
+    window.addEventListener('online', () => window.location.reload());
+  </script>
+</body>
+</html>
