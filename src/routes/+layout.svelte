@@ -5,20 +5,22 @@
 	let { children } = $props();
 
 	let showUpdateBanner = $state(false);
-	let registration = $state<ServiceWorkerRegistration | null>(null);
+	let deferredPrompt = $state<BeforeInstallPromptEvent | null>(null);
+	let showInstallButton = $state(false);
 
-	onMount(async () => {
-		if (browser && 'serviceWorker' in navigator) {
-			// Register service worker
-			try {
-				const reg = await navigator.serviceWorker.register('/sw.js', {
-					scope: '/',
-					type: 'classic'
-				});
-				console.log('✅ Service Worker registered:', reg.scope);
-				registration = reg;
+	interface BeforeInstallPromptEvent extends Event {
+		prompt(): Promise<void>;
+		userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+	}
 
-				// Check for updates
+	onMount(() => {
+		if (!browser) return;
+
+		// Listen for SW updates via vite-plugin-pwa auto-registration
+		if ('serviceWorker' in navigator) {
+			navigator.serviceWorker.ready.then((reg) => {
+				console.log('✅ Service Worker ready:', reg.scope);
+
 				reg.addEventListener('updatefound', () => {
 					const newWorker = reg.installing;
 					console.log('🔄 Service Worker update found');
@@ -30,20 +32,44 @@
 					});
 				});
 
-				// Check if there's a waiting SW
 				if (reg.waiting) {
 					showUpdateBanner = true;
 				}
-			} catch (error) {
-				console.error('❌ Service Worker registration failed:', error);
-			}
+			});
 		}
+
+		// Capture install prompt
+		window.addEventListener('beforeinstallprompt', (e) => {
+			e.preventDefault();
+			deferredPrompt = e as BeforeInstallPromptEvent;
+			showInstallButton = true;
+			console.log('📲 Install prompt captured');
+		});
+
+		window.addEventListener('appinstalled', () => {
+			showInstallButton = false;
+			deferredPrompt = null;
+			console.log('✅ App installed');
+		});
 	});
 
 	function applyUpdate() {
-		registration?.waiting?.postMessage({ type: 'SKIP_WAITING' });
+		if ('serviceWorker' in navigator) {
+			navigator.serviceWorker.ready.then((reg) => {
+				reg.waiting?.postMessage({ type: 'SKIP_WAITING' });
+			});
+		}
 		showUpdateBanner = false;
 		window.location.reload();
+	}
+
+	async function installApp() {
+		if (!deferredPrompt) return;
+		await deferredPrompt.prompt();
+		const { outcome } = await deferredPrompt.userChoice;
+		console.log('Install prompt outcome:', outcome);
+		deferredPrompt = null;
+		showInstallButton = false;
 	}
 </script>
 
@@ -57,6 +83,13 @@
 	<meta name="apple-mobile-web-app-title" content="PWA Test" />
 </svelte:head>
 
+<nav class="nav-bar">
+	<a href="/pwa-test" class="nav-link">Dashboard</a>
+	<a href="/map-test" class="nav-link">Map Test</a>
+	<a href="/image-test" class="nav-link">Image Test</a>
+	<a href="/audio-test" class="nav-link">Audio Test</a>
+</nav>
+
 {#if showUpdateBanner}
 	<div class="update-banner">
 		<span>A new version is available.</span>
@@ -64,9 +97,40 @@
 	</div>
 {/if}
 
+{#if showInstallButton}
+	<div class="install-banner">
+		<span>📲 Install this app for offline access</span>
+		<button onclick={installApp}>Install</button>
+	</div>
+{/if}
+
 {@render children()}
 
 <style>
+	.nav-bar {
+		display: flex;
+		gap: 0;
+		background: #0f172a;
+		padding: 0;
+		font-family: system-ui, -apple-system, sans-serif;
+		font-size: 0.85rem;
+		position: sticky;
+		top: 0;
+		z-index: 10000;
+	}
+
+	.nav-link {
+		color: #cbd5e1;
+		text-decoration: none;
+		padding: 0.6rem 1rem;
+		transition: background 0.15s, color 0.15s;
+	}
+
+	.nav-link:hover {
+		background: #1e293b;
+		color: #fff;
+	}
+
 	.update-banner {
 		position: fixed;
 		bottom: 1rem;
@@ -98,5 +162,39 @@
 
 	.update-banner button:hover {
 		background: #2563eb;
+	}
+
+	.install-banner {
+		position: fixed;
+		bottom: 4rem;
+		left: 50%;
+		transform: translateX(-50%);
+		background: #166534;
+		color: #fff;
+		padding: 0.75rem 1.25rem;
+		border-radius: 8px;
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		z-index: 9998;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+		font-family: system-ui, sans-serif;
+		font-size: 0.9rem;
+	}
+
+	.install-banner button {
+		background: #22c55e;
+		color: white;
+		border: none;
+		border-radius: 6px;
+		padding: 0.4rem 0.9rem;
+		cursor: pointer;
+		font-size: 0.85rem;
+		font-weight: 500;
+		white-space: nowrap;
+	}
+
+	.install-banner button:hover {
+		background: #16a34a;
 	}
 </style>

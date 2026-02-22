@@ -2,20 +2,22 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+const THIRTY_DAYS = 60 * 60 * 24 * 30;
+
 export default defineConfig({
 	plugins: [
 		sveltekit(),
 		VitePWA({
 			registerType: 'autoUpdate',
-			injectRegister: null, // Manual registration trong +layout.svelte
+			injectRegister: 'auto',
 			devOptions: {
-				enabled: false // PWA disabled in dev mode
+				enabled: true
 			},
 			includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'robots.txt'],
 			manifest: {
-				name: 'Lam Thuong PWA Test',
+				name: 'Lam Thuong PWA Cache Test',
 				short_name: 'PWA Test',
-				description: 'Test PWA offline capability with SvelteKit',
+				description: 'PWA cache and offline capability test tool',
 				theme_color: '#ffffff',
 				background_color: '#ffffff',
 				display: 'standalone',
@@ -41,12 +43,9 @@ export default defineConfig({
 			},
 			workbox: {
 				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
-				// SvelteKit: Dùng /offline làm fallback page
 				navigateFallback: 'index.html',
-				navigateFallbackAllowlist: [/^(?!\/__)/], // Allow all except __sveltekit routes
-				// Precache offline page và start URL
+				navigateFallbackAllowlist: [/^(?!\/__)/],
 				additionalManifestEntries: [
-					// { url: '/offline', revision: null },
 					{ url: '/', revision: null }
 				],
 				cleanupOutdatedCaches: true,
@@ -54,7 +53,71 @@ export default defineConfig({
 				clientsClaim: true,
 
 				runtimeCaching: [
-					// === NetworkFirst cho navigation requests (documents/HTML pages) ===
+					// ── Local map tiles ──
+					{
+						urlPattern: /\/map-tiles\/.*/i,
+						handler: 'CacheFirst',
+						options: {
+							cacheName: 'local-map-tiles-cache',
+							expiration: {
+								maxEntries: 2000,
+								maxAgeSeconds: THIRTY_DAYS
+							},
+							cacheableResponse: {
+								statuses: [0, 200]
+							}
+						}
+					},
+
+					// ── Test assets: Images ──
+					{
+						urlPattern: /\/test-assets\/images\/.*/i,
+						handler: 'CacheFirst',
+						options: {
+							cacheName: 'test-images-cache',
+							expiration: {
+								maxEntries: 500,
+								maxAgeSeconds: THIRTY_DAYS
+							},
+							cacheableResponse: {
+								statuses: [0, 200]
+							}
+						}
+					},
+
+					// ── Test assets: Audio ──
+					{
+						urlPattern: /\/test-assets\/audio\/.*/i,
+						handler: 'CacheFirst',
+						options: {
+							cacheName: 'test-audio-cache',
+							expiration: {
+								maxEntries: 500,
+								maxAgeSeconds: THIRTY_DAYS
+							},
+							cacheableResponse: {
+								statuses: [0, 200]
+							}
+						}
+					},
+
+					// ── Test assets: Map tiles ──
+					{
+						urlPattern: /\/test-assets\/map\/.*/i,
+						handler: 'CacheFirst',
+						options: {
+							cacheName: 'test-map-cache',
+							expiration: {
+								maxEntries: 500,
+								maxAgeSeconds: THIRTY_DAYS
+							},
+							cacheableResponse: {
+								statuses: [0, 200]
+							}
+						}
+					},
+
+					// ── Navigation requests (HTML pages) ──
 					{
 						urlPattern: ({ request }) => request.mode === 'navigate',
 						handler: 'NetworkFirst',
@@ -63,7 +126,7 @@ export default defineConfig({
 							networkTimeoutSeconds: 5,
 							expiration: {
 								maxEntries: 50,
-								maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
+								maxAgeSeconds: 60 * 60 * 24 * 7
 							},
 							cacheableResponse: {
 								statuses: [0, 200]
@@ -71,17 +134,15 @@ export default defineConfig({
 						}
 					},
 
-					// === CacheFirst Strategy ===
-
-					// Images: 30-40MB (ước tính ~150-200 entries, avg ~200KB/image)
+					// ── General images ──
 					{
 						urlPattern: /\.(?:png|jpg|jpeg|gif|webp|svg|ico|bmp)$/i,
 						handler: 'CacheFirst',
 						options: {
 							cacheName: 'images-cache',
 							expiration: {
-								maxEntries: 200, // Target ~30-40MB
-								maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+								maxEntries: 200,
+								maxAgeSeconds: THIRTY_DAYS
 							},
 							cacheableResponse: {
 								statuses: [0, 200]
@@ -89,15 +150,15 @@ export default defineConfig({
 						}
 					},
 
-					// Audio files: 20-30MB (ước tính ~10-15 entries, avg ~2MB/audio)
+					// ── General audio ──
 					{
 						urlPattern: /\.(?:mp3|wav|ogg|m4a|aac|flac)$/i,
 						handler: 'CacheFirst',
 						options: {
 							cacheName: 'audio-cache',
 							expiration: {
-								maxEntries: 15, // Target ~20-30MB
-								maxAgeSeconds: 60 * 60 * 24 * 60 // 60 days
+								maxEntries: 50,
+								maxAgeSeconds: 60 * 60 * 24 * 60
 							},
 							cacheableResponse: {
 								statuses: [0, 200]
@@ -105,32 +166,15 @@ export default defineConfig({
 						}
 					},
 
-					// Map tiles (OFFLINE CRITICAL): 40-50MB (ước tính ~800-1000 entries, avg ~50KB/tile)
-					// Leaflet tiles từ OpenStreetMap hoặc tile servers khác
+					// ── Map tiles (OpenStreetMap, etc.) ──
 					{
-						urlPattern: /\/(\d+)\/(\d+)\/(\d+)\.(png|jpg|jpeg)$/i,
-						handler: 'CacheFirst',
-						options: {
-							cacheName: 'map-tiles-cache',
-							expiration: {
-								maxEntries: 1000, // Target ~40-50MB - OFFLINE CRITICAL
-								maxAgeSeconds: 60 * 60 * 24 * 90 // 90 days
-							},
-							cacheableResponse: {
-								statuses: [0, 200]
-							}
-						}
-					},
-
-					// Map tiles từ tile.openstreetmap.org và các CDN khác
-					{
-						urlPattern: /^https?:\/\/(.*\.)?(openstreetmap|thunderforest|stamen|mapbox|tile)\.(org|com)\/.*\.(png|jpg|jpeg)$/i,
+						urlPattern: /^https?:\/\/(.*\.)?(openstreetmap|thunderforest|stamen|mapbox|tile)\.(org|com)\/.*/i,
 						handler: 'CacheFirst',
 						options: {
 							cacheName: 'map-tiles-cdn-cache',
 							expiration: {
-								maxEntries: 1000, // Target ~40-50MB - OFFLINE CRITICAL
-								maxAgeSeconds: 60 * 60 * 24 * 90 // 90 days
+								maxEntries: 1000,
+								maxAgeSeconds: 60 * 60 * 24 * 90
 							},
 							cacheableResponse: {
 								statuses: [0, 200]
@@ -138,7 +182,7 @@ export default defineConfig({
 						}
 					},
 
-					// Fonts
+					// ── Fonts ──
 					{
 						urlPattern: /\.(?:woff|woff2|ttf|eot)$/i,
 						handler: 'CacheFirst',
@@ -146,7 +190,7 @@ export default defineConfig({
 							cacheName: 'fonts-cache',
 							expiration: {
 								maxEntries: 20,
-								maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+								maxAgeSeconds: 60 * 60 * 24 * 365
 							},
 							cacheableResponse: {
 								statuses: [0, 200]
@@ -154,7 +198,7 @@ export default defineConfig({
 						}
 					},
 
-					// JS/CSS static assets
+					// ── Static JS/CSS ──
 					{
 						urlPattern: /\.(?:js|css)$/i,
 						handler: 'CacheFirst',
@@ -162,7 +206,7 @@ export default defineConfig({
 							cacheName: 'static-assets-cache',
 							expiration: {
 								maxEntries: 50,
-								maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
+								maxAgeSeconds: 60 * 60 * 24 * 7
 							},
 							cacheableResponse: {
 								statuses: [0, 200]
@@ -170,9 +214,7 @@ export default defineConfig({
 						}
 					},
 
-					// === NetworkFirst Strategy ===
-
-					// API requests
+					// ── API requests ──
 					{
 						urlPattern: /^https?:\/\/.*\/api\/.*/i,
 						handler: 'NetworkFirst',
@@ -181,7 +223,7 @@ export default defineConfig({
 							networkTimeoutSeconds: 10,
 							expiration: {
 								maxEntries: 50,
-								maxAgeSeconds: 5 * 60 // 5 minutes
+								maxAgeSeconds: 5 * 60
 							},
 							cacheableResponse: {
 								statuses: [0, 200]
