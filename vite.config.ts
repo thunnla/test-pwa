@@ -49,13 +49,13 @@ export default defineConfig({
 				cleanupOutdatedCaches: true,
 				skipWaiting: true,
 				clientsClaim: true,
-				additionalManifestEntries: [
-					{ url: '/pwa-test', revision: null },
-					{ url: '/image-test', revision: null },
-					{ url: '/audio-test', revision: null },
-					{ url: '/map-test', revision: null },
-					{ url: '/report', revision: null },
-				],
+				// additionalManifestEntries: [
+				// 	{ url: '/pwa-test', revision: null },
+				// 	{ url: '/image-test', revision: null },
+				// 	{ url: '/audio-test', revision: null },
+				// 	{ url: '/map-test', revision: null },
+				// 	{ url: '/report', revision: null },
+				// ],
 				runtimeCaching: [
 					// ── Local map tiles ──
 					{
