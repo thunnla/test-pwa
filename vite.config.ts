@@ -43,9 +43,9 @@ export default defineConfig({
 			},
 			workbox: {
 				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
-				// offline.html là file tĩnh → Workbox precache được, không crash
-				navigateFallback: '/offline.html',
-				navigateFallbackAllowlist: [/^(?!\/__)/],
+				// Không dùng navigateFallback với SSR (Netlify adapter) — gây conflict
+				// NetworkFirst runtime cache dưới đây sẽ tự cache HTML khi online
+				// và trả cached version khi offline
 				cleanupOutdatedCaches: true,
 				skipWaiting: true,
 				clientsClaim: true,
