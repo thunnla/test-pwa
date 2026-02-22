@@ -49,7 +49,13 @@ export default defineConfig({
 				cleanupOutdatedCaches: true,
 				skipWaiting: true,
 				clientsClaim: true,
-
+				additionalManifestEntries: [
+					{ url: '/pwa-test', revision: null },
+					{ url: '/image-test', revision: null },
+					{ url: '/audio-test', revision: null },
+					{ url: '/map-test', revision: null },
+					{ url: '/report', revision: null },
+				],
 				runtimeCaching: [
 					// ── Local map tiles ──
 					{
@@ -68,10 +74,11 @@ export default defineConfig({
 					},
 
 					{
-						urlPattern: ({ request }) => request.mode === 'navigate',
-						handler: 'StaleWhileRevalidate',
+						urlPattern: ({ request, url }) => request.mode === 'navigate' && !url.pathname.startsWith('/api/'),
+						handler: 'NetworkFirst',
 						options: {
 							cacheName: 'pages-cache',
+							networkTimeoutSeconds: 3,
 							expiration: {
 								maxEntries: 50,
 								maxAgeSeconds: 60 * 60 * 24 * 7

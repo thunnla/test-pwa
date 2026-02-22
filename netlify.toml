@@ -15,6 +15,7 @@
     Cache-Control = "public, max-age=0, must-revalidate"
     X-Content-Type-Options = "nosniff"
     Vary = "Accept-Encoding"
+    Surrogate-Control = "no-store"
 
 # SW file không cache (luôn lấy mới nhất)
 [[headers]]

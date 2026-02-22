@@ -40,12 +40,23 @@
 
 					// Warm-up: pre-cache các trang chính sau khi SW sẵn sàng
 					// Đảm bảo offline refresh hoạt động dù user chưa từng vào trang đó
-					navigator.serviceWorker.ready.then(() => {
-						const keyRoutes = ['/', '/pwa-test', '/image-test', '/audio-test', '/map-test', '/report'];
-						keyRoutes.forEach((url) => {
-							fetch(url, { credentials: 'same-origin', redirect: 'follow' }).catch(() => {});
-						});
-						console.log('📦 Key routes warm-up triggered');
+					navigator.serviceWorker.ready.then(async(reg) => {
+						if(reg.active){
+							const keyRoutes = ['/', '/pwa-test', '/image-test', '/audio-test', '/map-test', '/report'];
+							for(const url of keyRoutes){
+								try {
+									const res = await fetch(url, { credentials: 'same-origin', redirect: 'follow' });
+									// Manually put vào cache nếu SW chưa tự cache
+									if (res.ok || res.status === 0) {
+										const cache = await caches.open('pages-cache');
+										await cache.put(url, res.clone());
+										console.log(`✅ Warm-up cached: ${url}`);
+									}
+								} catch (e) {
+									console.warn(`⚠️ Warm-up failed: ${url}`, e);
+								}
+							}
+						}
 					});
 				})
 				.catch((err) => console.error('❌ SW registration failed:', err));
