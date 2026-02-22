@@ -37,6 +37,16 @@
 					if (reg.waiting) {
 						showUpdateBanner = true;
 					}
+
+					// Warm-up: pre-cache các trang chính sau khi SW sẵn sàng
+					// Đảm bảo offline refresh hoạt động dù user chưa từng vào trang đó
+					navigator.serviceWorker.ready.then(() => {
+						const keyRoutes = ['/pwa-test', '/image-test', '/audio-test', '/map-test', '/report'];
+						keyRoutes.forEach((url) => {
+							fetch(url, { credentials: 'same-origin' }).catch(() => {});
+						});
+						console.log('📦 Key routes warm-up triggered');
+					});
 				})
 				.catch((err) => console.error('❌ SW registration failed:', err));
 		}

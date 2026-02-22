@@ -7,3 +7,17 @@
 
 [build.environment]
   NODE_VERSION = "22"
+
+# Cho phép Service Worker cache HTML response
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    X-Content-Type-Options = "nosniff"
+
+# SW file không cache (luôn lấy mới nhất)
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Service-Worker-Allowed = "/"
