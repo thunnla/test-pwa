@@ -16,28 +16,30 @@
 	onMount(() => {
 		if (!browser) return;
 
-		// Listen for SW updates via vite-plugin-pwa auto-registration
+		// Đăng ký SW thủ công — injectRegister:'auto' không hoạt động ổn trên Netlify SSR
 		if ('serviceWorker' in navigator) {
-			navigator.serviceWorker.ready.then((reg) => {
-				console.log('✅ Service Worker ready:', reg.scope);
+			navigator.serviceWorker
+				.register('/sw.js', { scope: '/' })
+				.then((reg) => {
+					console.log('✅ SW registered, scope:', reg.scope);
 
-				reg.addEventListener('updatefound', () => {
-					const newWorker = reg.installing;
-					console.log('🔄 Service Worker update found');
-					newWorker?.addEventListener('statechange', () => {
-						if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-							console.log('✨ New Service Worker installed');
-							showUpdateBanner = true;
-						}
+					reg.addEventListener('updatefound', () => {
+						const newWorker = reg.installing;
+						console.log('🔄 SW update found');
+						newWorker?.addEventListener('statechange', () => {
+							if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+								console.log('✨ New SW installed');
+								showUpdateBanner = true;
+							}
+						});
 					});
-				});
 
-				if (reg.waiting) {
-					showUpdateBanner = true;
-				}
-			});
+					if (reg.waiting) {
+						showUpdateBanner = true;
+					}
+				})
+				.catch((err) => console.error('❌ SW registration failed:', err));
 		}
-
 		// Capture install prompt
 		window.addEventListener('beforeinstallprompt', (e) => {
 			e.preventDefault();

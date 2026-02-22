@@ -9,7 +9,7 @@ export default defineConfig({
 		sveltekit(),
 		VitePWA({
 			registerType: 'autoUpdate',
-			injectRegister: 'auto',
+			injectRegister: null,
 			devOptions: {
 				enabled: true
 			},
