@@ -117,13 +117,43 @@
 				swStatus = 'unsupported';
 				throw new Error('Trình duyệt không hỗ trợ Service Worker');
 			}
-			const reg = await navigator.serviceWorker.getRegistration();
+
+			// Thử lấy registration hiện tại trước
+			let reg = await navigator.serviceWorker.getRegistration();
+
 			if (reg?.active) {
 				swStatus = 'active';
-				return `Scope: ${reg.scope}`;
+				return `Scope: ${reg.scope} (active)`;
 			}
+
+			// SW có thể đang installing/waiting — chờ ready với timeout 10s
+			if (reg?.installing || reg?.waiting) {
+				const readyReg = await Promise.race([
+					navigator.serviceWorker.ready,
+					new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000))
+				]);
+				if (readyReg?.active) {
+					swStatus = 'active';
+					return `Scope: ${readyReg.scope} (activated sau khi chờ)`;
+				}
+			}
+
+			// Thử chờ ready lần cuối (trường hợp chưa có registration)
+			try {
+				const readyReg = await Promise.race([
+					navigator.serviceWorker.ready,
+					new Promise<null>((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+				]);
+				if (readyReg?.active) {
+					swStatus = 'active';
+					return `Scope: ${readyReg.scope} (ready)`;
+				}
+			} catch {
+				// timeout
+			}
+
 			swStatus = 'inactive';
-			throw new Error('Chưa có Service Worker nào đang hoạt động');
+			throw new Error('Service Worker chưa active sau 10s chờ. Thử reload trang và chạy lại.');
 		});
 
 		// 2. Storage API
@@ -167,11 +197,24 @@
 
 		// 6. Installable
 		await runTest(5, async () => {
+			// Kiểm tra app đã được cài đặt chưa (standalone mode)
+			const isStandalone =
+				window.matchMedia('(display-mode: standalone)').matches ||
+				(navigator as any).standalone === true ||
+				document.referrer.includes('android-app://');
+
+			if (isStandalone) {
+				return '✅ App đã được cài đặt (đang chạy standalone mode)';
+			}
+
+			// Chưa cài → kiểm tra điều kiện installable
 			const manifest = document.querySelector('link[rel="manifest"]');
 			if (!manifest) throw new Error('Không tìm thấy manifest link');
+
 			const reg = await navigator.serviceWorker?.getRegistration();
 			if (!reg?.active) throw new Error('Cần Service Worker hoạt động để cài đặt');
-			return 'Manifest + SW sẵn sàng';
+
+			return 'Manifest + SW sẵn sàng (chưa cài đặt)';
 		});
 
 		loading = false;

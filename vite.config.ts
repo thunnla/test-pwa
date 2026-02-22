@@ -43,11 +43,8 @@ export default defineConfig({
 			},
 			workbox: {
 				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
-				navigateFallback: 'index.html',
+				navigateFallback: '/',
 				navigateFallbackAllowlist: [/^(?!\/__)/],
-				additionalManifestEntries: [
-					{ url: '/', revision: null }
-				],
 				cleanupOutdatedCaches: true,
 				skipWaiting: true,
 				clientsClaim: true,
