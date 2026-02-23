@@ -1,0 +1,122 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "thac-nam-chan",
+        "name": "Thác Nặm Chắn - Nam Chan Waterfall",
+        "type": "natural",
+        "description": "Thác Nặm Chắn là một điểm du lịch nổi tiếng ở Lâm Thượng, nơi có cảnh quan thiên nhiên tuyệt đẹp và là điểm đến lý tưởng cho những ai yêu thích thiên nhiên và muốn trải nghiệm không gian yên bình của thung lũng Lâm Thượng."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [104.322012, 22.358531]
+      }
+    },
+    {
+        "type": "Feature",
+        "properties": {
+            "id": "xoi-farmstay",
+            "name": "Xới Farmstay - Garden House in Lam Thuong Valley",
+            "type": "accommodation",
+            "description": "Nơi nghỉ dưỡng và tham quan trong thung lũng Lâm Thượng"
+        },
+        "geometry": {
+            "type": "Point",
+            "coordinates": [104.6790985, 22.2071516]
+        }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "quan-bo-suot",
+        "name": "Quán Bờ Suối Bẻ Chỏi Lâm Thượng- Bo Suoi Drinks and Restaurant",
+        "type": "restaurant",
+        "description": "Quán ăn ven suối nổi tiếng với các món ăn đặc sản địa phương và không gian thoáng đãng, gần gũi với thiên nhiên"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [104.5942255, 22.2212453]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "jack-ecolodge",
+        "name": "Jack Ecolodge - Lam Thuong Valley",
+        "type": "accommodation",
+        "description": "Nơi nghỉ dưỡng sinh thái trong thung lũng Lâm Thượng, cung cấp chỗ ở thân thiện với môi trường và trải nghiệm gần gũi với thiên nhiên"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [104.6327241, 22.2091515]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "khuoi-luong",
+        "name": "Khuổi Luông - Luong Stream",
+        "type": "natural",
+        "description": "Dòng suối chảy qua thung lũng Lâm Thượng, nơi có cảnh quan thiên nhiên đẹp và là điểm tham quan nổi tiếng"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [104.683333, 22.2104159]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "ho-tham-khoang",
+        "name": "Hồ Thâm Khoang",
+        "type": "natural",
+        "description": "Hồ nước nằm trong thung lũng Lâm Thượng, có cảnh quan thiên nhiên đẹp và là điểm tham quan nổi tiếng"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [104.7053208, 22.174525]
+      }
+    },
+    {
+        "type": "Feature",
+        "properties": {
+            "id": "hang-bo-ma-mai-son-luc-yen-yen-bai",
+            "name": "Hang Bó Mạ-Mai Sơn-Lục Yên-Yên Bái",
+            "type": "natural",
+            "description": "Hang Bó Mạ là một hang động nằm trong khu vực Mai Sơn, thuộc huyện Lục Yên, tỉnh Yên Bái. Đây là một điểm du lịch nổi tiếng với cảnh quan thiên nhiên hùng vĩ và hệ thống hang động độc đáo, thu hút nhiều du khách đến tham quan và khám phá."
+        },
+        "geometry": {
+            "type": "Point",
+            "coordinates": [104.7166122, 22.168507]
+        }
+    },
+    {
+        "type": "Feature",
+        "properties": {
+            "id": "cong-chao-xa-lam-thuong",
+            "name": "Cổng chào xã Lâm Thượng",
+            "type": "cultural",
+            "description": "Cổng chào xã Lâm Thượng là một điểm đến nổi tiếng ở Lâm Thượng, nơi có cảnh quan thiên nhiên tuyệt đẹp và là điểm đến lý tưởng cho những ai yêu thích thiên nhiên và muốn trải nghiệm không gian yên bình của thung lũng Lâm Thượng."
+        },
+        "geometry": {
+            "type": "Point",
+            "coordinates": [104.7170659, 22.1664412]
+        }
+    },
+    {
+        "type": "Feature",
+        "properties": {
+            "id": "lang-van-hoa-son-nam-mai-son-luc-yen-yen-bai",
+            "name": "LÀNG VĂN HÓA SƠN NAM, XÃ MAI SƠN, HUYỆN LỤC YÊN, TỈNH YÊN BÁI",
+            "type": "cultural",
+            "description": "Làng văn hóa Sơn Nam là một điểm du lịch nổi tiếng ở Lâm Thượng, nơi có cảnh quan thiên nhiên tuyệt đẹp và là điểm đến lý tưởng cho những ai yêu thích thiên nhiên và muốn trải nghiệm không gian yên bình của thung lũng Lâm Thượng."
+        },
+        "geometry": {
+            "type": "Point",
+            "coordinates": [104.727913, 22.1627433]
+        }
+    }
+  ]
+}
